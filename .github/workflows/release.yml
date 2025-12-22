@@ -1,0 +1,113 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release name'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            runs-on: ubuntu-latest
+            runtime: linux-x64
+            artifact-name: BepInExInstaller-linux-x64
+            executable: BepInExInstaller
+          - os: windows
+            runs-on: windows-latest
+            runtime: win-x64
+            artifact-name: BepInExInstaller-win-x64
+            executable: BepInExInstaller.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build and publish
+        run: |
+          dotnet publish BepInExInstaller.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:PublishReadyToRun=true \
+            -o ./publish/${{ matrix.runtime }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ./publish/${{ matrix.runtime }}/${{ matrix.executable }}
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R ./artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: ${{ inputs.release_name || inputs.tag_name }}
+          prerelease: ${{ inputs.prerelease }}
+          draft: false
+          files: |
+            ./artifacts/BepInExInstaller-linux-x64/BepInExInstaller
+            ./artifacts/BepInExInstaller-win-x64/BepInExInstaller.exe
+          body: |
+            ## BepInEx Unity Installer ${{ inputs.tag_name }}
+            
+            ### Downloads
+            - **Linux**: `BepInExInstaller` (x64)
+            - **Windows**: `BepInExInstaller.exe` (x64)
+            
+            ### Installation
+            
+            #### Linux
+            1. Download `BepInExInstaller`
+            2. Make it executable: `chmod +x BepInExInstaller`
+            3. Run: `./BepInExInstaller`
+            
+            #### Windows
+            1. Download `BepInExInstaller.exe`
+            2. Run the executable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
