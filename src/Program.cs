@@ -4,7 +4,9 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using BepInExInstaller.ProtonConfig;
 
 namespace BepInExInstaller
 {
@@ -14,6 +16,40 @@ namespace BepInExInstaller
         {
             try
             {
+                // Parse command-line arguments
+                string gameName = null;
+                for (int i = 0; i < args.Length; i++)
+                {
+                    if (args[i] == "-n" && i + 1 < args.Length)
+                    {
+                        gameName = args[i + 1];
+                        break;
+                    }
+                }
+
+                // If -n flag was provided, find the game directory
+                if (!string.IsNullOrEmpty(gameName))
+                {
+                    Console.WriteLine($"Searching for game: {gameName}");
+                    string gameDir = FindGameDirectory(gameName);
+                    
+                    if (gameDir != null)
+                    {
+                        Console.WriteLine($"Found game at: {gameDir}");
+                        InstallTo(gameDir);
+                        Console.WriteLine("\nPress any key to exit...");
+                        Console.ReadKey();
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Could not find game '{gameName}' in Steam libraries.");
+                        Console.WriteLine("Press any key to exit...");
+                        Console.ReadKey();
+                        return;
+                    }
+                }
+
                 if (File.Exists(Path.Combine(AppContext.BaseDirectory, "UnityPlayer.dll")))
                 {
                     Console.WriteLine("Installer is in game folder.");
@@ -72,6 +108,25 @@ namespace BepInExInstaller
                 Console.WriteLine("\n\nPress any key to exit...");
                 Console.ReadKey();
             }
+        }
+
+        private static string FindGameDirectory(string gameName)
+        {
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string steamPath = Path.Combine(home, ".steam", "steam");
+
+            // First, find the App ID
+            int appId = IDFinder.FindGameID(gameName, steamPath);
+            if (appId <= 0)
+            {
+                Console.WriteLine($"Could not find App ID for '{gameName}'");
+                return null;
+            }
+
+            Console.WriteLine($"Found App ID: {appId}");
+
+            // Get the install directory from appmanifest
+            return IDFinder.FindGameInstallDirectory(appId, steamPath);
         }
 
         private static void InstallTo(string gamePath)
@@ -136,9 +191,9 @@ namespace BepInExInstaller
                     string latest = match.Groups[1].Value;
                     Console.WriteLine($"Downloading {latest}");
                     string fileName = Path.GetFileName(latest);
-                    var data = client.GetByteArrayAsync(latest).Result;
-                    File.WriteAllBytes(fileName, data);
                     zipPath = Path.Combine(path, fileName);
+                    var data = client.GetByteArrayAsync(latest).Result;
+                    File.WriteAllBytes(zipPath, data);
                     Console.WriteLine($"Downloaded {latest}");
 
                 }
@@ -176,6 +231,82 @@ namespace BepInExInstaller
             }
             Console.WriteLine($"");
             Console.WriteLine($"Installation Complete!");
+            
+            // Check if running on Linux and offer Proton configuration
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Console.WriteLine("");
+                Console.WriteLine("Linux detected! Would you like to configure Proton for this game?");
+                Console.WriteLine("This will set the winhttp override required for BepInEx to work.");
+                Console.WriteLine("Press Y to configure Proton, or any other key to skip:");
+                key = Console.ReadKey();
+                Console.WriteLine("");
+                
+                if (key.Key == ConsoleKey.Y)
+                {
+                    // Use directory name (from Steam install dir) as it matches the appmanifest game name
+                    string gameName = Path.GetFileName(gamePath);
+                    
+                    Console.WriteLine($"Attempting to find Steam App ID for '{gameName}'...");
+                    
+                    string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    string steamPath = Path.Combine(home, ".steam", "steam");
+                    
+                    int appId = IDFinder.FindGameID(gameName, steamPath);
+                    
+                    if (appId > 0)
+                    {
+                        Console.WriteLine($"Found Steam App ID: {appId}");
+                        Console.WriteLine($"Use this App ID? Y to confirm, N to enter manually:");
+                        key = Console.ReadKey();
+                        Console.WriteLine("");
+                        
+                        if (key.Key == ConsoleKey.N)
+                        {
+                            Console.WriteLine("Please enter the Steam App ID for this game:");
+                            string manualAppId = Console.ReadLine();
+                            if (!string.IsNullOrWhiteSpace(manualAppId) && int.TryParse(manualAppId, out int parsedId))
+                            {
+                                appId = parsedId;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid App ID. Skipping Proton configuration.");
+                                appId = -1;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Could not automatically find App ID for '{gameName}'.");
+                        Console.WriteLine("Please enter the Steam App ID manually (or press Enter to skip):");
+                        string manualAppId = Console.ReadLine();
+                        if (!string.IsNullOrWhiteSpace(manualAppId) && int.TryParse(manualAppId, out int parsedId))
+                        {
+                            appId = parsedId;
+                        }
+                    }
+                    
+                    if (appId > 0)
+                    {
+                        Console.WriteLine($"Configuring Proton for Steam App ID {appId}...");
+                        int result = ProtonConfig.ProtonConfig.Execute(appId.ToString(), "winhttp");
+                        
+                        if (result == 0)
+                        {
+                            Console.WriteLine("Proton configuration completed successfully!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Proton configuration failed. You may need to configure it manually.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid App ID. Skipping Proton configuration.");
+                    }
+                }
+            }
         }
 
         public enum MachineType { Native = 0, x86 = 0x014c, Itanium = 0x0200, x64 = 0x8664 }
