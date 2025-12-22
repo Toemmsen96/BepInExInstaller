@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -13,10 +14,10 @@ namespace BepInExInstaller
         {
             try
             {
-                if (File.Exists(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "UnityPlayer.dll")))
+                if (File.Exists(Path.Combine(AppContext.BaseDirectory, "UnityPlayer.dll")))
                 {
                     Console.WriteLine("Installer is in game folder.");
-                    if (Directory.Exists(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "BepInEx")))
+                    if (Directory.Exists(Path.Combine(AppContext.BaseDirectory, "BepInEx")))
                     {
                         Console.WriteLine("BepInEx folder already exists!");
                         Console.WriteLine("Press U to uninstall or Y to install anyway:");
@@ -28,13 +29,13 @@ namespace BepInExInstaller
                             if (key.Key == ConsoleKey.Y)
                             {
                                 Console.WriteLine("Deleting BepInEx folder");
-                                Directory.Delete(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "BepInEx"), true);
+                                Directory.Delete(Path.Combine(AppContext.BaseDirectory, "BepInEx"), true);
                                 Console.WriteLine("Deleting winhttp.dll");
-                                File.Delete(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "winhttp.dll"));
+                                File.Delete(Path.Combine(AppContext.BaseDirectory, "winhttp.dll"));
                                 Console.WriteLine("Deleting doorstop_config.ini");
-                                File.Delete(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "doorstop_config.ini"));
+                                File.Delete(Path.Combine(AppContext.BaseDirectory, "doorstop_config.ini"));
                                 Console.WriteLine("Deleting changelog.txt");
-                                File.Delete(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "changelog.txt"));
+                                File.Delete(Path.Combine(AppContext.BaseDirectory, "changelog.txt"));
                                 Console.WriteLine("\nBepInEx uninstalled! Press any key to exit...");
                             }
                             else
@@ -44,14 +45,14 @@ namespace BepInExInstaller
                         }
                         else if (key.Key == ConsoleKey.Y)
                         {
-                            InstallTo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+                            InstallTo(AppContext.BaseDirectory);
                             Console.WriteLine("\nPress any key to exit...");
                         }
                         Console.ReadKey();
                         return;
                     }
 
-                    InstallTo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+                    InstallTo(AppContext.BaseDirectory);
                     Console.WriteLine("\nPress any key to exit...");
                     Console.ReadKey();
                     return;
@@ -60,7 +61,7 @@ namespace BepInExInstaller
                 var keyinfo = Console.ReadKey();
                 if (keyinfo.Key == ConsoleKey.Y)
                 {
-                    InstallTo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+                    InstallTo(AppContext.BaseDirectory);
                     Console.WriteLine("\nPress any key to exit...");
                     Console.ReadKey();
                 }
@@ -79,7 +80,7 @@ namespace BepInExInstaller
 
             Console.WriteLine("Looking for BepInEx archive...");
 
-            string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string path = AppContext.BaseDirectory;
 
             bool x64 = true;
             foreach (string file in Directory.GetFiles(path, "*.exe"))
@@ -120,10 +121,10 @@ namespace BepInExInstaller
             if (zipPath == null)
             {
                 Console.WriteLine("Downloading BepInEx from GitHub...");
-                using (WebClient client = new WebClient())
+                using (HttpClient client = new HttpClient())
                 {
-                    client.Headers["User-Agent"] = "request";
-                    string source = client.DownloadString("https://api.github.com/repos/BepInEx/BepInEx/releases/latest");
+                    client.DefaultRequestHeaders.Add("User-Agent", "request");
+                    string source = client.GetStringAsync("https://api.github.com/repos/BepInEx/BepInEx/releases/latest").Result;
                     var match = Regex.Match(source, "(https://github.com/BepInEx/BepInEx/releases/download/v[^/]+/BepInEx_win_[^\"]*" + (x64 ? "x64" : "x86") + "[^\"]+)\"");
                     if (!match.Success)
                     {
@@ -135,7 +136,8 @@ namespace BepInExInstaller
                     string latest = match.Groups[1].Value;
                     Console.WriteLine($"Downloading {latest}");
                     string fileName = Path.GetFileName(latest);
-                    client.DownloadFile(latest, fileName);
+                    var data = client.GetByteArrayAsync(latest).Result;
+                    File.WriteAllBytes(fileName, data);
                     zipPath = Path.Combine(path, fileName);
                     Console.WriteLine($"Downloaded {latest}");
 
