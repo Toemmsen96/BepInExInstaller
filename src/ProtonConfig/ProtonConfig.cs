@@ -91,8 +91,7 @@ public static class ProtonConfig
         // Execute other commands via Wine
         try
         {
-            List<string> cmd = new List<string> { wineBinary };
-            cmd.AddRange(command);
+            List<string> cmd = [wineBinary, .. command];
             Console.WriteLine($"Executing: {string.Join(" ", cmd)}");
 
             var processInfo = new ProcessStartInfo
