@@ -3,22 +3,25 @@ This program will automatically install BepInEx to Mono-Based games.
 
 ## Features
 - Install BepInEx into Unity Mono-Games automatically
-- Linux: Configure Proton automatically to make BepInEx work (Start the game once first)
+- For Linux: Configure Proton automatically to make BepInEx work (Steam: Start the game once first to create Proton prefix)
 
 ## Requirements:
 - dotnet runtime 9.0
 
 ## Usage
 There are multiple ways to use this:
-### Using Arguments
-To install 
-### Placing in in Gamefolder
+### Using Arguments (Steam games)
+To install into Steam games from anywhere:
+```sh
+./BepInExInstaller -n "Game Name"
+```
+### Placing in in Gamefolder (Any Games)
 - place the executable in the Folder, which the game is in.
 - Run the executable:
 
 Linux: ```sh ./BepInExInstaller```
 
-Windows: double click executable
+Windows: double click the executable
 
 - Follow the instructions in the console
 
