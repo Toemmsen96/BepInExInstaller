@@ -11,6 +11,7 @@ namespace BepInExInstaller
 {
     public static class Installer
     {
+        internal static ConsoleKeyInfo key;
         public static void InstallTo(string gamePath)
         {
             ConsoleKeyInfo key;
@@ -31,6 +32,22 @@ namespace BepInExInstaller
 
             Console.WriteLine($"Game appears to be {(x64 ? "64-bit" : "32-bit")}...");
 
+            if (IsIl2CppGame(gamePath))
+            {
+                Console.WriteLine("IL2CPP game detected! This installer cannot (yet?) download BepInEx for IL2CPP games.");
+                if (x64)
+                    Console.WriteLine("Please Download BepInEx-Unity.IL2CPP-win-x64...zip manually from here: https://builds.bepinex.dev/projects/bepinex_be");
+                else
+                    Console.WriteLine("Please Download BepInEx-Unity.IL2CPP-win-x86...zip manually from here: https://builds.bepinex.dev/projects/bepinex_be");
+                Console.WriteLine("You can still Check and Configure Proton for this game. Do you want to continue? Y/n");
+                key = Console.ReadKey();
+                if (!(key.Key == ConsoleKey.Y || key.Key == ConsoleKey.Enter))
+                {
+                    return;
+                }
+                CheckAndConfigureProton(gamePath);
+                return;
+            }
 
             string zipPath = null;
             foreach (string file in Directory.GetFiles(path, "*.zip"))
@@ -114,7 +131,11 @@ namespace BepInExInstaller
             Console.WriteLine($"");
             Console.WriteLine($"Installation Complete!");
             
-            // Check if running on Linux and offer Proton configuration
+            CheckAndConfigureProton(gamePath);
+            }
+
+        private static void CheckAndConfigureProton(string gamePath)
+        {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 Console.WriteLine("");
@@ -187,7 +208,27 @@ namespace BepInExInstaller
                         Console.WriteLine("Invalid App ID. Skipping Proton configuration.");
                     }
                 }
+        }
+        }
+
+        public static bool IsIl2CppGame(string gamePath)
+        {
+            if (Directory.Exists(Path.Combine(gamePath, "il2cpp_data")))
+                return true;
+            
+            // Search in subfolders
+            try
+            {
+                string[] subdirs = Directory.GetDirectories(gamePath, "il2cpp_data", SearchOption.AllDirectories);
+                if (subdirs.Length > 0)
+                    return true;
             }
+            catch
+            {
+                // Ignore exceptions (e.g., permission issues)
+            }
+            
+            return false;
         }
 
             public static MachineType GetAppCompiledMachineType(string fileName)
