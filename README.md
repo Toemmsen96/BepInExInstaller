@@ -1,11 +1,11 @@
 # BepInEx Installer
-This program will automatically install BepInEx to Mono-Based games. 
-IL2CPP-Games are not supported to install the files, however it can still be used to configure Proton to make it work.
+This program will automatically install BepInEx to Mono and IL2CPP-Based games. 
+This is built for Windows games, so it doesn't install to Linux native binaries (yet), but to games running proton.
 
 ## Features
-- Install BepInEx into Unity Mono-Games automatically
+- Install BepInEx into Unity-Games automatically
 - For Linux: Configure Proton automatically to make BepInEx work (Steam: Start the game once first to create Proton prefix)
-- For IL2CPP-Games: gives you the Download Link and can configure Proton for these
+- For IL2CPP-Games: Installs the latest BepInEx 6 - Bleeding edge-build
 
 ## Requirements:
 - dotnet runtime 9.0
@@ -52,4 +52,4 @@ dotnet publish -c Release -r win-x64
 ## Credits
 - aedenthorn: Windows Base for this:
 [BepInExUnityInstaller](https://github.com/aedenthorn/BepInExUnityInstaller)
-- Toemmsen96: Linux Version, rewrite, ProtonConfig
+- Toemmsen96: Linux Version, rewrite, ProtonConfig, IL2CPP Support
