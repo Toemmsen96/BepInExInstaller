@@ -34,17 +34,114 @@ namespace BepInExInstaller
 
             if (IsIl2CppGame(gamePath))
             {
-                Console.WriteLine("IL2CPP game detected! This installer cannot (yet?) download BepInEx for IL2CPP games.");
-                if (x64)
-                    Console.WriteLine("Please Download BepInEx-Unity.IL2CPP-win-x64...zip manually from here: https://builds.bepinex.dev/projects/bepinex_be");
-                else
-                    Console.WriteLine("Please Download BepInEx-Unity.IL2CPP-win-x86...zip manually from here: https://builds.bepinex.dev/projects/bepinex_be");
-                Console.WriteLine("You can still Check and Configure Proton for this game. Do you want to continue? Y/n");
-                key = Console.ReadKey();
-                if (!(key.Key == ConsoleKey.Y || key.Key == ConsoleKey.Enter))
+                Console.WriteLine("IL2CPP game detected! Attempting to download BepInEx for IL2CPP...");
+                
+                string il2cppZipPath = null;
+                try
                 {
+                    Console.WriteLine("Finding latest IL2CPP build...");
+                    using (HttpClient client = new HttpClient())
+                    {
+                        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                        string buildsPage = client.GetStringAsync("https://builds.bepinex.dev/projects/bepinex_be").Result;
+                        
+                        // Parse artifact-details to find build number and hash
+                        // Pattern: <span class="artifact-id">#752</span>....<a class="hash-button" href="...">dd0655f</a>
+                        var artifactPattern = @"<span class=""artifact-id"">#(\d+)</span>\s*<a class=""hash-button"" href=""[^""]+"">([a-f0-9]+)</a>";
+                        var artifactMatches = Regex.Matches(buildsPage, artifactPattern);
+                        
+                        if (artifactMatches.Count == 0)
+                        {
+                            throw new Exception("Could not find any build artifacts");
+                        }
+                        
+                        // Get the first match (latest build)
+                        Match latestArtifact = artifactMatches[0];
+                        string buildNum = latestArtifact.Groups[1].Value;
+                        string gitHash = latestArtifact.Groups[2].Value;
+                        
+                        // Construct the expected filename
+                        string arch = x64 ? "x64" : "x86";
+                        string fileName = $"BepInEx-Unity.IL2CPP-win-{arch}-6.0.0-be.{buildNum}+{gitHash}.zip";
+                        string fileNameEncoded = fileName.Replace("+", "%2B"); // URL encode the +
+                        
+                        Console.WriteLine($"Found latest IL2CPP build: #{buildNum} ({gitHash})");
+                        Console.WriteLine($"Artifact: {fileName}");
+                        
+                        string downloadUrl = $"https://builds.bepinex.dev/projects/bepinex_be/{buildNum}/{fileNameEncoded}";
+                        
+                        Console.WriteLine($"Downloading...");
+                        il2cppZipPath = Path.Combine(path, fileName);
+                        
+                        var data = client.GetByteArrayAsync(downloadUrl).Result;
+                        File.WriteAllBytes(il2cppZipPath, data);
+                        Console.WriteLine($"Downloaded IL2CPP build successfully!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to download IL2CPP build: {ex.Message}");
+                    if (x64)
+                        Console.WriteLine("Please download BepInEx-Unity.IL2CPP-win-x64...zip manually from: https://builds.bepinex.dev/projects/bepinex_be");
+                    else
+                        Console.WriteLine("Please download BepInEx-Unity.IL2CPP-win-x86...zip manually from: https://builds.bepinex.dev/projects/bepinex_be");
+                    
+                    Console.WriteLine("You can still Check and Configure Proton for this game. Do you want to continue? Y/n");
+                    key = Console.ReadKey();
+                    if (!(key.Key == ConsoleKey.Y || key.Key == ConsoleKey.Enter))
+                    {
+                        return;
+                    }
+                    CheckAndConfigureProton(gamePath);
                     return;
                 }
+                
+                // If we successfully downloaded, install it
+                if (il2cppZipPath != null && File.Exists(il2cppZipPath))
+                {
+                    Console.WriteLine("Installing BepInEx IL2CPP...");
+                    var il2cppArchive = ZipFile.OpenRead(il2cppZipPath);
+                    foreach (var entry in il2cppArchive.Entries)
+                    {
+                        // Skip directory entries (they end with /)
+                        if (string.IsNullOrEmpty(entry.Name))
+                            continue;
+                            
+                        string f = Path.Combine(gamePath, entry.FullName);
+                        string dir = Path.GetDirectoryName(f);
+                        
+                        if (!Directory.Exists(dir))
+                            Directory.CreateDirectory(dir);
+                        
+                        // Delete existing file first if it exists to avoid permission issues
+                        if (File.Exists(f))
+                        {
+                            try
+                            {
+                                File.Delete(f);
+                            }
+                            catch (Exception)
+                            {
+                                // If we can't delete, try to continue anyway
+                            }
+                        }
+                        
+                        entry.ExtractToFile(f, true);
+                        Console.WriteLine($"Copying {entry.FullName}");
+                    }
+                    il2cppArchive.Dispose();
+                    
+                    Console.WriteLine($"BepInEx IL2CPP installed to {gamePath}!");
+                    Console.WriteLine("Delete downloaded zip archive? Y/n");
+                    key = Console.ReadKey();
+                    if (key.Key != ConsoleKey.N)
+                    {
+                        File.Delete(il2cppZipPath);
+                    }
+                    Console.WriteLine("");
+                    Console.WriteLine("Installation Complete!");
+                }
+                
                 CheckAndConfigureProton(gamePath);
                 return;
             }
