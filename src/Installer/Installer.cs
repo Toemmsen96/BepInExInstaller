@@ -128,8 +128,69 @@ namespace BepInExInstaller
             Console.WriteLine($"");
             Console.WriteLine($"Installation Complete!");
             
+            ConfigureBepInExConsole(gamePath);
             CheckAndConfigureProton(gamePath);
             }
+
+        private static void ConfigureBepInExConsole(string gamePath)
+        {
+            if (!Program.configureConsole)
+            {
+                return;
+            }
+
+            string configPath = Path.Combine(gamePath, "BepInEx", "config", "BepInEx.cfg");
+            
+            // Wait a moment for the file to be created if it doesn't exist yet
+            if (!File.Exists(configPath))
+            {
+                PrintVerbose("BepInEx.cfg not found. The game needs to be run once to generate the config file.", MessageType.Warning);
+                Console.WriteLine("Note: Console will be enabled on first game launch.");
+                return;
+            }
+            
+            try
+            {
+                PrintVerbose("Configuring BepInEx console...");
+                string[] lines = File.ReadAllLines(configPath);
+                bool inConsoleSection = false;
+                bool configUpdated = false;
+                
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (lines[i].Trim() == "[Logging.Console]")
+                    {
+                        inConsoleSection = true;
+                    }
+                    else if (inConsoleSection && lines[i].StartsWith("["))
+                    {
+                        inConsoleSection = false;
+                    }
+                    
+                    if (inConsoleSection && lines[i].StartsWith("Enabled = "))
+                    {
+                        lines[i] = "Enabled = true";
+                        configUpdated = true;
+                        PrintVerbose("Set [Logging.Console] Enabled = true");
+                        break;
+                    }
+                }
+                
+                if (configUpdated)
+                {
+                    File.WriteAllLines(configPath, lines);
+                    Console.WriteLine("BepInEx console enabled!");
+                }
+                else
+                {
+                    PrintVerbose("Could not find Enabled setting in [Logging.Console] section.", MessageType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                PrintVerbose($"Failed to configure BepInEx console: {ex.Message}", MessageType.Warning);
+            }
+        }
 
         private static void CheckAndConfigureProton(string gamePath)
         {
@@ -336,6 +397,8 @@ namespace BepInExInstaller
                     }
                     Console.WriteLine("");
                     Console.WriteLine("Installation Complete!");
+                    
+                    ConfigureBepInExConsole(gamePath);
                 }
         }
 

@@ -14,31 +14,16 @@ namespace BepInExInstaller
 {
     class Program
     {
-        public static bool verbose = false;
+        public static bool verbose { get; private set; } = false;
+        public static bool configureConsole { get; private set; } = false;
+        private static string gameName = null;
         static void Main(string[] args)
         {
             try
             {
                 // Parse command-line arguments
-                string gameName = null;
-                for (int i = 0; i < args.Length; i++)
-                {
-                    if (args[i] == "-n" && i + 1 < args.Length)
-                    {
-                        gameName = args[i + 1];
-                        break;
-                    }
-                    if (args[i] == "-h" || args[i] == "--help")
-                    {
-                        PrintHelp();
-                        return;
-                    }
-                    if (args[i] == "-v" )
-                    {
-                        verbose = true;
-                        PrintVerbose("Verbose mode enabled.");
-                    }
-                }
+                gameName = null;
+                ParseArguments(args);
 
                 // If -n flag was provided, find the game directory
                 if (!string.IsNullOrEmpty(gameName))
@@ -126,6 +111,49 @@ namespace BepInExInstaller
             }
         }
 
+
+        private static void ParseArguments(string[] args)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "-n":
+                        if (i + 1 < args.Length)
+                        {
+                            i++;
+                            gameName = args[i];
+                            Environment.SetEnvironmentVariable("GAME_NAME", gameName);
+                        }
+                        else
+                        {
+                            PrintError("No game name specified after -n");
+                            PrintHelp();
+                            Environment.Exit(1);
+                        }
+                        break;
+                    case "-c":
+                    case "--console":
+                        configureConsole = true;
+                        break;
+                    case "-v":
+                    case "--verbose":
+                        verbose = true;
+                        break;
+                    case "-h":
+                    case "--help":
+                        PrintHelp();
+                        Environment.Exit(0);
+                        break;
+                    default:
+                        PrintError($"Unknown argument: {args[i]}");
+                        PrintHelp();
+                        Environment.Exit(1);
+                        break;
+                }
+            }
+        }
+
         private static string FindGameDirectory(string gameName)
         {
             string steamPath = GetSteamPath();
@@ -152,11 +180,13 @@ namespace BepInExInstaller
         private static void PrintHelp()
         {
             Console.WriteLine("BepInEx Installer Help");
-            Console.WriteLine("Usage: BepInExInstaller [-n <game_name>] [-h|--help]");
+            Console.WriteLine("Usage: BepInExInstaller [-n <game_name>] [-c|--console] [-v|--verbose] [-h|--help]");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("  -n <game_name>   Specify the name of the game to install BepInEx for.");
             Console.WriteLine("                   The installer will attempt to locate the game in Steam libraries.");
+            Console.WriteLine("  -c, --console    Enable BepInEx console logging by setting Enabled=true in BepInEx.cfg.");
+            Console.WriteLine("  -v, --verbose    Enable verbose output during installation.");
             Console.WriteLine("  -h, --help       Display this help message.");
             Console.WriteLine();
             Console.WriteLine("If no options are provided, the installer will check if it is located in a game directory.");
