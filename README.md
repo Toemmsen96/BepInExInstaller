@@ -4,8 +4,12 @@ This is built for Windows games, so it doesn't install to Linux native binaries 
 
 ## Features
 - Install BepInEx into Unity-Games automatically
+- Validates game directory structure (requires GameName.exe and GameName_Data folder)
+- Automatically detects game architecture (32-bit or 64-bit)
 - For Linux: Configure Proton automatically to make BepInEx work (Steam: Start the game once first to create Proton prefix)
 - For IL2CPP-Games: Installs the latest BepInEx 6 - Bleeding edge-build
+- Optional: Enable BepInEx console logging automatically with `-c` flag
+- Verbose output mode for detailed installation information with `-v` flag
 
 ## Requirements:
 - dotnet runtime 9.0
@@ -13,6 +17,7 @@ This is built for Windows games, so it doesn't install to Linux native binaries 
 
 ## Usage
 There are multiple ways to use this:
+
 ### Using Arguments (Steam games)
 First Start the Game once, to generate the Proton Prefix.
 
@@ -20,6 +25,25 @@ After that, to install BepInEx into Steam games from anywhere:
 ```sh
 ./BepInExInstaller -n "Game Name"
 ```
+
+**Available Options:**
+- `-n <game_name>` - Specify the name of the game to install BepInEx for (installer will locate the game in Steam libraries)
+- `-c` or `--console` - Enable BepInEx console logging by setting Enabled=true in BepInEx.cfg
+- `-v` or `--verbose` - Enable verbose output during installation for detailed information
+- `-h` or `--help` - Display help message
+
+**Example Commands:**
+```sh
+# Install BepInEx with console enabled and verbose output
+./BepInExInstaller -n "Game Name" -c -v
+
+# Install with just console enabled
+./BepInExInstaller -n "Game Name" --console
+
+# Install with verbose output only
+./BepInExInstaller -v -n "Game Name"
+```
+
 Follow along with what the Installer tells you. It will ask you if you want to configure Proton to make BepInEx work.
 
 ### Placing in in Gamefolder (Any Games)
@@ -28,10 +52,17 @@ Follow along with what the Installer tells you. It will ask you if you want to c
 
 Linux: 
 ```sh 
+# Basic installation
 ./BepInExInstaller
+
+# With console and verbose output
+./BepInExInstaller -c -v
 ```
 
-Windows: double click the executable
+Windows: double click the executable, or use command line with options:
+```cmd
+BepInExInstaller.exe -c -v
+```
 
 - Follow the instructions in the console
 
@@ -52,4 +83,4 @@ dotnet publish -c Release -r win-x64
 ## Credits
 - aedenthorn: Windows Base for this:
 [BepInExUnityInstaller](https://github.com/aedenthorn/BepInExUnityInstaller)
-- Toemmsen96: Linux Version, rewrite, ProtonConfig, IL2CPP Support
+- Toemmsen96: Linux Version, rewrite, ProtonConfig, IL2CPP Support, Commandline Arguments
