@@ -30,7 +30,7 @@ public static class ProtonConfig
         // Get all Steam library paths
         List<string> steamLibraries = GetSteamLibraryPaths(steamPath);
 
-        string? compatdataPath = null;
+        string compatdataPath = null;
         foreach (string libraryPath in steamLibraries)
         {
             string testCompatdataPath = Path.Combine(libraryPath, "steamapps", "compatdata", appId);
@@ -62,7 +62,7 @@ public static class ProtonConfig
         }
 
         // Find Wine binary in any Proton installation
-        string? wineBinary = FindProtonWineBinary(steamPath);
+        string wineBinary = FindProtonWineBinary(steamPath);
 
         if (wineBinary == null)
         {
@@ -78,7 +78,7 @@ public static class ProtonConfig
         }
         else
         {
-            command = new[] { "winecfg" };
+            command = ["winecfg"];
         }
 
         // Special handling for winhttp override
@@ -158,10 +158,10 @@ public static class ProtonConfig
     /// <summary>
     /// Find Wine binary in any available Proton installation
     /// </summary>
-    private static string? FindProtonWineBinary(string steamPath)
+    private static string FindProtonWineBinary(string steamPath)
     {
         // First, try to find the specific Proton version being used for app 544730
-        string? usedProtonPath = FindUsedProtonInstallation(steamPath);
+        string usedProtonPath = FindUsedProtonInstallation(steamPath);
         if (usedProtonPath != null)
         {
             string winePath = Path.Combine(usedProtonPath, "dist", "bin", "wine64");
@@ -279,7 +279,7 @@ public static class ProtonConfig
     /// <summary>
     /// Find the specific Proton installation being used for app 544730
     /// </summary>
-    private static string? FindUsedProtonInstallation(string steamPath)
+    private static string FindUsedProtonInstallation(string steamPath)
     {
         try
         {
@@ -299,7 +299,7 @@ public static class ProtonConfig
                         Console.WriteLine($"🔍 Found Proton version file: {versionContent}");
 
                         // Map version to actual Proton directory name
-                        string? protonDirName = MapVersionToProtonDirectory(steamPath, versionContent);
+                        string protonDirName = MapVersionToProtonDirectory(steamPath, versionContent);
 
                         if (protonDirName != null)
                         {
@@ -337,7 +337,7 @@ public static class ProtonConfig
     /// <summary>
     /// Map version string to actual Proton directory name
     /// </summary>
-    private static string? MapVersionToProtonDirectory(string steamPath, string version)
+    private static string MapVersionToProtonDirectory(string steamPath, string version)
     {
         try
         {
@@ -379,7 +379,7 @@ public static class ProtonConfig
             // First, try to find exact version matches by checking version files
             foreach (string protonDir in uniqueProtonDirs)
             {
-                string? exactMatch = CheckProtonVersionFile(protonDir, version, steamLibraries);
+                string exactMatch = CheckProtonVersionFile(protonDir, version, steamLibraries);
                 if (exactMatch != null)
                 {
                     Console.WriteLine($"✔ Exact version match found: {version} -> {exactMatch}");
@@ -438,7 +438,7 @@ public static class ProtonConfig
     /// <summary>
     /// Check Proton version file for exact version matching
     /// </summary>
-    private static string? CheckProtonVersionFile(string protonDirName, string targetVersion, List<string> steamLibraries)
+    private static string CheckProtonVersionFile(string protonDirName, string targetVersion, List<string> steamLibraries)
     {
         try
         {

@@ -63,7 +63,7 @@ public static class IDFinder
                         // Check if this is the game we're looking for
                         if (gameNameLower.Contains(nameLower) || nameLower.Contains(gameNameLower))
                         {
-                            Console.WriteLine($"Found match: '{gameName}' (App ID: {appId})");
+                            Util.PrintVerbose($"Found match: '{gameName}' (App ID: {appId})");
                             SaveCache(cache);
                             return appId;
                         }
