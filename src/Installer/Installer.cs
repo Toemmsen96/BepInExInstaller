@@ -27,9 +27,10 @@ namespace BepInExInstaller
                 PrintError("Invalid game directory. Installation aborted.");
                 return;
             }
-            foreach (string file in Directory.GetFiles(path, "*.exe"))
+            foreach (string file in Directory.GetFiles(gamePath, "*.exe"))
             {
-                if (!file.StartsWith("BepInEx") && Directory.Exists(Path.Combine(path, Path.GetFileNameWithoutExtension(file) + "_Data")))
+                string fileName = Path.GetFileName(file);
+                if (!fileName.StartsWith("BepInEx") && Directory.Exists(Path.Combine(gamePath, Path.GetFileNameWithoutExtension(file) + "_Data")))
                 {
                    PrintVerbose($"Basing architecture on {file}: {(GetAppCompiledMachineType(file) == MachineType.x86 ? "32-bit" : "64-bit")}");
                     x64 = GetAppCompiledMachineType(file) != MachineType.x86;

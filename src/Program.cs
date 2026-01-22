@@ -65,13 +65,13 @@ namespace BepInExInstaller
                             key = Console.ReadKey();
                             if (key.Key == ConsoleKey.Y || key.Key == ConsoleKey.Enter)
                             {
-                                Console.WriteLine("Deleting BepInEx folder");
+                                PrintVerbose("Deleting BepInEx folder");
                                 Directory.Delete(Path.Combine(AppContext.BaseDirectory, "BepInEx"), true);
-                                Console.WriteLine("Deleting winhttp.dll");
+                                PrintVerbose("Deleting winhttp.dll");
                                 File.Delete(Path.Combine(AppContext.BaseDirectory, "winhttp.dll"));
-                                Console.WriteLine("Deleting doorstop_config.ini");
+                                PrintVerbose("Deleting doorstop_config.ini");
                                 File.Delete(Path.Combine(AppContext.BaseDirectory, "doorstop_config.ini"));
-                                Console.WriteLine("Deleting changelog.txt");
+                                PrintVerbose("Deleting changelog.txt");
                                 File.Delete(Path.Combine(AppContext.BaseDirectory, "changelog.txt"));
                                 Console.WriteLine("\nBepInEx uninstalled! Press any key to exit...");
                             }
