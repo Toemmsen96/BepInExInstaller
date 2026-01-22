@@ -17,12 +17,14 @@ namespace BepInExInstaller
         public static bool verbose { get; private set; } = false;
         public static bool configureConsole { get; private set; } = false;
         private static string gameName = null;
+        private static string filesToInstallArchive = null;
         static void Main(string[] args)
         {
             try
             {
                 // Parse command-line arguments
                 gameName = null;
+                filesToInstallArchive = null;
                 ParseArguments(args);
 
                 // If -n flag was provided, find the game directory
@@ -35,6 +37,13 @@ namespace BepInExInstaller
                     {
                         Console.WriteLine($"Found game at: {gameDir}");
                         InstallTo(gameDir);
+                        
+                        // Install plugins if archive was specified
+                        if (!string.IsNullOrEmpty(filesToInstallArchive))
+                        {
+                            PluginInstaller.InstallTo(gameDir, filesToInstallArchive);
+                        }
+                        
                         Console.WriteLine("\nPress any key to exit...");
                         Console.ReadKey();
                         return;
@@ -45,6 +54,13 @@ namespace BepInExInstaller
                         Console.WriteLine("Please provide the game path manually:");
                         string manualPath = Console.ReadLine();
                         InstallTo(manualPath);
+                        
+                        // Install plugins if archive was specified
+                        if (!string.IsNullOrEmpty(filesToInstallArchive))
+                        {
+                            PluginInstaller.InstallTo(manualPath, filesToInstallArchive);
+                        }
+                        
                         Console.WriteLine("Press any key to exit...");
                         Console.ReadKey();
                         return;
@@ -83,6 +99,13 @@ namespace BepInExInstaller
                         else if (key.Key == ConsoleKey.Y || key.Key == ConsoleKey.Enter)
                         {
                             InstallTo(AppContext.BaseDirectory);
+                            
+                            // Install plugins if archive was specified
+                            if (!string.IsNullOrEmpty(filesToInstallArchive))
+                            {
+                                PluginInstaller.InstallTo(AppContext.BaseDirectory, filesToInstallArchive);
+                            }
+                            
                             Console.WriteLine("\nPress any key to exit...");
                         }
                         Console.ReadKey();
@@ -90,6 +113,13 @@ namespace BepInExInstaller
                     }
 
                     InstallTo(AppContext.BaseDirectory);
+                    
+                    // Install plugins if archive was specified
+                    if (!string.IsNullOrEmpty(filesToInstallArchive))
+                    {
+                        PluginInstaller.InstallTo(AppContext.BaseDirectory, filesToInstallArchive);
+                    }
+                    
                     Console.WriteLine("\nPress any key to exit...");
                     Console.ReadKey();
                     return;
@@ -99,6 +129,13 @@ namespace BepInExInstaller
                 if (keyinfo.Key == ConsoleKey.Y || keyinfo.Key == ConsoleKey.Enter  )
                 {
                     InstallTo(AppContext.BaseDirectory);
+                    
+                    // Install plugins if archive was specified
+                    if (!string.IsNullOrEmpty(filesToInstallArchive))
+                    {
+                        PluginInstaller.InstallTo(AppContext.BaseDirectory, filesToInstallArchive);
+                    }
+                    
                     Console.WriteLine("\nPress any key to exit...");
                     Console.ReadKey();
                 }
@@ -128,6 +165,20 @@ namespace BepInExInstaller
                         else
                         {
                             PrintError("No game name specified after -n");
+                            PrintHelp();
+                            Environment.Exit(1);
+                        }
+                        break;
+                    case "-i":
+                        if (i + 1 < args.Length)
+                        {
+                            i++;
+                            filesToInstallArchive = args[i];
+                            Environment.SetEnvironmentVariable("FILES_NAME", filesToInstallArchive);
+                        }
+                        else
+                        {
+                            PrintError("No files archive specified after -i");
                             PrintHelp();
                             Environment.Exit(1);
                         }
@@ -180,11 +231,12 @@ namespace BepInExInstaller
         private static void PrintHelp()
         {
             Console.WriteLine("BepInEx Installer Help");
-            Console.WriteLine("Usage: BepInExInstaller [-n <game_name>] [-c|--console] [-v|--verbose] [-h|--help]");
+            Console.WriteLine("Usage: BepInExInstaller [-n <game_name>] [-i <files_archive>] [-c|--console] [-v|--verbose] [-h|--help]");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("  -n <game_name>   Specify the name of the game to install BepInEx for.");
             Console.WriteLine("                   The installer will attempt to locate the game in Steam libraries.");
+            Console.WriteLine("  -i <files_archive> Specify the archive of .dll files to install.");
             Console.WriteLine("  -c, --console    Enable BepInEx console logging by setting Enabled=true in BepInEx.cfg.");
             Console.WriteLine("  -v, --verbose    Enable verbose output during installation.");
             Console.WriteLine("  -h, --help       Display this help message.");
