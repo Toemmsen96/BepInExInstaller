@@ -2,6 +2,8 @@
 This program will automatically install BepInEx to Mono and IL2CPP-Based games. 
 This is built for Windows games, so it doesn't install to Linux native binaries (yet), but to games running proton.
 
+**GUI Edition:** https://github.com/Toemmsen96/BepInExInstallerGUI
+
 ## Features
 - Install BepInEx into Unity-Games automatically
 - Validates game directory structure (requires GameName.exe and GameName_Data folder)
